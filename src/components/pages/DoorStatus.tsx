@@ -511,7 +511,7 @@ function DoorStatus() {
                             <ChevronDownIcon />
                           ))}
                       </Table.ColumnHeaderCell>
-                      <Table.ColumnHeaderCell
+                      {/* <Table.ColumnHeaderCell
                         onClick={() => handleDoorSort("HubStatus")}
                         style={{ cursor: "pointer" }}
                       >
@@ -522,7 +522,7 @@ function DoorStatus() {
                           ) : (
                             <ChevronDownIcon />
                           ))}
-                      </Table.ColumnHeaderCell>
+                      </Table.ColumnHeaderCell> */}
                       <Table.ColumnHeaderCell
                         onClick={() => handleDoorSort("RFStatusName")}
                         style={{ cursor: "pointer" }}
@@ -561,7 +561,7 @@ function DoorStatus() {
                         <Table.Cell>
                           <Text>{item.HubName}</Text>
                         </Table.Cell>
-                        <Table.Cell>
+                        {/* <Table.Cell>
                           <Badge
                             color={
                               ["Offline", "Unknown"].includes(item.HubStatus)
@@ -572,7 +572,7 @@ function DoorStatus() {
                           >
                             <Text>{item.HubStatus}</Text>
                           </Badge>
-                        </Table.Cell>
+                        </Table.Cell> */}
                         <Table.Cell>
                           <Badge
                             color={
