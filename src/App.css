@@ -1,0 +1,271 @@
+@import "@radix-ui/colors/black-alpha.css";
+@import "@radix-ui/colors/mauve.css";
+@import "@radix-ui/colors/red.css";
+@import "@radix-ui/colors/violet.css";
+
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+/* Light Mode Icon */
+body[data-theme="light"] .theme-toggle {
+  color: black !important;
+}
+
+/* Dark Mode Icon */
+body[data-theme="dark"] .theme-toggle {
+  color: white !important;
+}
+/* reset */
+button {
+  all: unset;
+}
+
+.Button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0 15px;
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 500;
+  height: 35px;
+  user-select: none;
+}
+.Button:focus:not(:focus-visible) {
+  outline: 0;
+}
+.Button:focus-visible {
+  outline: 2px solid var(--violet-6);
+  outline-offset: 1px;
+}
+.Button.violet {
+  background-color: var(--violet-4);
+  color: var(--violet-12);
+  outline-color: var(--violet-6);
+}
+.Button.violet:hover {
+  background-color: var(--mauve-3);
+}
+.Button.red {
+  background-color: var(--red-4);
+  color: var(--red-11);
+  outline-color: var(--red-7);
+}
+.Button.red:hover {
+  background-color: var(--red-5);
+}
+.Button.mauve {
+  background-color: var(--mauve-4);
+  color: var(--mauve-11);
+  outline-color: var(--mauve-7);
+}
+.Button.mauve:hover {
+  background-color: var(--mauve-5);
+}
+
+@keyframes overlayShow {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes contentShow {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body,
+html {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: auto; /* Enable scrolling */
+}
+
+.container {
+  display: flex;
+  width: 100vw; /* Full viewport width */
+  height: 100vh; /* Full viewport height */
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  position: fixed; /* Fix it to the left */
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  border-right: 1px solid var(--gray-6); /* Vertical line on the right side */
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Pushes items to both sides */
+  width: 100%; /* Make sure it takes full width */
+  margin-bottom: 30px;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem; /* Adjust icon size */
+}
+
+/* Navigation */
+.nav {
+  list-style: none;
+  padding: 0;
+}
+
+.icon-style {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.leading-none {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.nav-item a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--gray-13); /* Radix dark/light-aware token */
+}
+
+.nav-item:hover,
+.active {
+  /* background-color: #333; */
+}
+
+/* Logout */
+.logout {
+  margin-top: auto;
+  padding: 12px;
+  display: flex;
+  text-align: center;
+  cursor: pointer;
+  justify-content: space-between;
+  border-top: 1px solid var(--gray-6); /* Add a light gray top border */
+}
+
+.main-content {
+  /* flex: 1;  */
+  width: inherit;
+  padding: 40px;
+  color: white;
+  /* display: flex; */
+  margin-left: 250px; /* Offset by sidebar width */
+  align-items: flex-start; /* Align items to the top */
+  justify-content: flex-start; /* Align items to the left */
+  min-height: 100vh; /* Ensures it fills the full height */
+  overflow-y: auto; /* Allows vertical scrolling */
+}
+
+/* 🔹 Responsive Sidebar */
+@media screen and (max-width: 1200px) {
+  .sidebar {
+    width: 200px; /* Slightly smaller on medium screens */
+  }
+
+  .logo {
+    font-size: 22px;
+  }
+
+  .nav-item {
+    font-size: 16px;
+    padding: 10px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .sidebar {
+    width: 80px;
+    padding: 10px;
+  }
+
+  .logo {
+    font-size: 16px;
+  }
+
+  .nav-item {
+    font-size: 14px;
+    text-align: center;
+    padding: 8px;
+  }
+
+  .logout {
+    font-size: 14px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .nav {
+    display: flex;
+    gap: 10px;
+  }
+
+  .nav-item {
+    padding: 5px;
+  }
+
+  .main-content {
+    padding: 10px;
+  }
+}
