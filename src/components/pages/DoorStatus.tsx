@@ -451,7 +451,7 @@ function DoorStatus() {
         <Container size="4" mb="8">
           <Box my="2">
             <Heading mb="2" size="6" color="gray">
-              Door Status
+              Room Door Status
             </Heading>
           </Box>
           <Box>
