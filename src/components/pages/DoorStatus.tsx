@@ -23,15 +23,24 @@ import {
   fetchHubStatus,
   fetchAndMergeData,
   fetchOnlineMetric,
+  fetchLockListByHubs,
 } from "/src/services/api";
 
-interface PairedData {
-  RoomName: string;
-  FloorName: string;
-  HubName: string;
-  HubStatus: string;
-  RFStatusName: string;
-  hubLastOffline: string;
+// Adjust PairedData to match API response or map accordingly
+
+interface LockData {
+  name: string;
+  floorName: string;
+  hubName: string;
+  status: string;
+  isOpen: boolean;
+  isLatched: string;
+  isAjar: string;
+  isBatteryLow: string;
+  isRfSignalWeak: string;
+  isDeadboltThrown: string;
+  lastCommunication: string;
+  lastTimeOffline: string;
 }
 
 interface HubData {
@@ -43,6 +52,7 @@ interface HubData {
   firmwareHub: string;
   lastTimeOffline: string;
 }
+
 interface MetricsData {
   totalHubs: number;
   onlineHubs: number;
@@ -62,10 +72,6 @@ interface MetricsData {
 function DoorStatus() {
   const rowsPerPageOptions = [10, 20, 50];
 
-  const [data, setData] = useState<{ hubs: any[]; accessPoints: any[] }>({
-    hubs: [],
-    accessPoints: [],
-  });
   const [error, setError] = useState<string | null>(null);
   const [doorSearchQuery, setDoorSearchQuery] = useState("");
   const [doorSortColumn, setDoorSortColumn] = useState<keyof PairedData | null>(
@@ -74,6 +80,8 @@ function DoorStatus() {
   const [doorSortOrder, setDoorSortOrder] = useState<"asc" | "desc">("asc");
   const [doorCurrentPage, setDoorCurrentPage] = useState(1);
   const [doorRowsPerPage, setDoorRowsPerPage] = useState(10);
+
+  const [pairedData, setPairedData] = useState<PairedData[]>([]);
 
   // Hub Status Table State
   const [hubData, setHubData] = useState<HubData[]>([]);
@@ -89,28 +97,48 @@ function DoorStatus() {
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [metricsError, setMetricsError] = useState<string | null>(null);
 
-  // Get 2 API details
-
+  // Fetch Paired Data and Map to PairedData Interface
   useEffect(() => {
     const loadData = async () => {
       try {
-        const result = await fetchAndMergeData();
-        setData(result);
+        const result = await fetchLockListByHubs();
+        // console.log("Ruben:", result);
+
+        // Extract items array and map to PairedData
+        const items = result?.items || [];
+        const mappedData: PairedData[] = items.map((item: LockData) => ({
+          name: item.name || "-",
+          floorName: item.floorName || "-",
+          HubName: item.hubName || "-",
+          status: item.status || "-",
+          isOpen: item.isOpen,
+          isAjar: item.isAjar,
+          isBatteryLow: item.isBatteryLow,
+          isRfSignalWeak: item.isRfSignalWeak,
+          isDeadboltThrown: item.isDeadboltThrown,
+          lastCommunications: item.lastCommunication,
+          hubLastOffline: item.lastTimeOffline,
+        }));
+        //  console.log("Rubens:", mappedData);
+        setPairedData(mappedData);
       } catch (err) {
         setError("Failed to load data");
+        setPairedData([]);
       }
     };
     loadData();
   }, []);
-  // Get hub list details
+
+  // Fetch Hub Status Data
   useEffect(() => {
     const fetchData = async () => {
       const results = await fetchHubStatus();
-      setHubData(results);
+      setHubData(Array.isArray(results) ? results : []);
     };
     fetchData();
   }, []);
-  // Get hub online metrics details
+
+  // Fetch Metrics Data
   useEffect(() => {
     const fetchMetricsData = async () => {
       try {
@@ -121,20 +149,18 @@ function DoorStatus() {
           throw new Error("No data returned from fetchOnlineMetrics");
         }
         setMetricsData(results);
-        console.log("Metrics Data:", results); // Debug log
       } catch (err) {
-        console.error("Failed to fetch metrics:", err);
         setMetricsError("Failed to load metrics data");
       } finally {
         setMetricsLoading(false);
       }
     };
-
     fetchMetricsData();
   }, []);
-  //date formatting function starts here
+
+  // Date Formatting Function
   const formatDateLocal = (isoString: string) => {
-    if (!isoString) return "-";
+    if (!isoString || isoString === "-") return "-";
     const date = new Date(isoString);
     return date
       .toLocaleString("en-CA", {
@@ -148,9 +174,8 @@ function DoorStatus() {
       })
       .replace(",", "");
   };
-  //date formatting function starts here
 
-  // Room Door Status starts here
+  // Sorting Handlers
   const handleDoorSort = (column: keyof PairedData) => {
     if (doorSortColumn === column) {
       setDoorSortOrder(doorSortOrder === "asc" ? "desc" : "asc");
@@ -159,9 +184,7 @@ function DoorStatus() {
       setDoorSortOrder("asc");
     }
   };
-  // Room Door Status ends here
 
-  // Hub Status Handlers
   const handleHubSort = (column: keyof HubData) => {
     if (hubSortColumn === column) {
       setHubSortOrder(hubSortOrder === "asc" ? "desc" : "asc");
@@ -172,29 +195,20 @@ function DoorStatus() {
   };
 
   // Door Status Data Processing
-  const maxRows = Math.max(data.hubs.length, data.accessPoints.length);
-  const pairedData: PairedData[] = Array.from({ length: maxRows }).map(
-    (_, index) => ({
-      RoomName: data.accessPoints[index]?.name || "-",
-      FloorName: data.accessPoints[index]?.floorName || "-",
-      HubName: data.hubs[index]?.hubName || "-",
-      HubStatus: data.hubs[index]?.deviceStatusName || "-",
-      RFStatusName: data.hubs[index]?.rfStatusName || "-",
-      hubLastOffline: data.hubs[index]?.lastTimeOffline || "-",
-    })
-  );
-
-  const sortedDoorData = [...pairedData].sort((a, b) => {
-    if (!doorSortColumn) return 0;
-    const aValue = a[doorSortColumn];
-    const bValue = b[doorSortColumn];
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      return doorSortOrder === "asc"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    }
-    return 0;
-  });
+  const sortedDoorData =
+    pairedData.length > 0
+      ? [...pairedData].sort((a, b) => {
+          if (!doorSortColumn) return 0;
+          const aValue = a[doorSortColumn];
+          const bValue = b[doorSortColumn];
+          if (typeof aValue === "string" && typeof bValue === "string") {
+            return doorSortOrder === "asc"
+              ? aValue.localeCompare(bValue)
+              : bValue.localeCompare(aValue);
+          }
+          return 0;
+        })
+      : [];
 
   const filteredDoorData = sortedDoorData.filter((item) =>
     Object.values(item).some(
@@ -211,17 +225,20 @@ function DoorStatus() {
   );
 
   // Hub Status Data Processing
-  const sortedHubData = [...hubData].sort((a, b) => {
-    if (!hubSortColumn) return 0;
-    const aValue = a[hubSortColumn];
-    const bValue = b[hubSortColumn];
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      return hubSortOrder === "asc"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    }
-    return 0;
-  });
+  const sortedHubData =
+    hubData.length > 0
+      ? [...hubData].sort((a, b) => {
+          if (!hubSortColumn) return 0;
+          const aValue = a[hubSortColumn];
+          const bValue = b[hubSortColumn];
+          if (typeof aValue === "string" && typeof bValue === "string") {
+            return hubSortOrder === "asc"
+              ? aValue.localeCompare(bValue)
+              : bValue.localeCompare(aValue);
+          }
+          return 0;
+        })
+      : [];
 
   const filteredHubData = sortedHubData.filter((item) =>
     Object.values(item).some(
@@ -441,7 +458,7 @@ function DoorStatus() {
               </>
             ) : (
               <Text size="4" color="gray">
-                Loading.....
+                Loading...
               </Text>
             )}
           </Flex>
@@ -476,11 +493,11 @@ function DoorStatus() {
                   <Table.Header className="bg-gray-200 sticky top-0 z-10">
                     <Table.Row>
                       <Table.ColumnHeaderCell
-                        onClick={() => handleDoorSort("RoomName")}
+                        onClick={() => handleDoorSort("name")}
                         style={{ cursor: "pointer" }}
                       >
                         Room
-                        {doorSortColumn === "RoomName" &&
+                        {doorSortColumn === "name" &&
                           (doorSortOrder === "asc" ? (
                             <ChevronUpIcon />
                           ) : (
@@ -491,7 +508,7 @@ function DoorStatus() {
                         onClick={() => handleDoorSort("FloorName")}
                         style={{ cursor: "pointer" }}
                       >
-                        Floor Name
+                        Floor
                         {doorSortColumn === "FloorName" &&
                           (doorSortOrder === "asc" ? (
                             <ChevronUpIcon />
@@ -500,40 +517,48 @@ function DoorStatus() {
                           ))}
                       </Table.ColumnHeaderCell>
                       <Table.ColumnHeaderCell
-                        onClick={() => handleDoorSort("HubName")}
+                        onClick={() => handleDoorSort("hubName")}
                         style={{ cursor: "pointer" }}
                       >
-                        Hub Name
-                        {doorSortColumn === "HubName" &&
+                        Hub
+                        {doorSortColumn === "hubName" &&
                           (doorSortOrder === "asc" ? (
                             <ChevronUpIcon />
                           ) : (
                             <ChevronDownIcon />
                           ))}
                       </Table.ColumnHeaderCell>
-                      {/* <Table.ColumnHeaderCell
-                        onClick={() => handleDoorSort("HubStatus")}
-                        style={{ cursor: "pointer" }}
-                      >
-                        Hub Status
-                        {doorSortColumn === "HubStatus" &&
-                          (doorSortOrder === "asc" ? (
-                            <ChevronUpIcon />
-                          ) : (
-                            <ChevronDownIcon />
-                          ))}
-                      </Table.ColumnHeaderCell> */}
+                      {/* name: string; floorName: string; hubName: string; status:
+                      string; isOpen: string; isLatched: string; isAjar: string;
+                      isBatteryLow: string; isRfSignalWeak: string;
+                      isDeadboltThrown: string; lastCommunication: string;
+                      lastTimeOffline: string; */}
                       <Table.ColumnHeaderCell
-                        onClick={() => handleDoorSort("RFStatusName")}
+                        onClick={() => handleDoorSort("status")}
                         style={{ cursor: "pointer" }}
                       >
-                        RF Status
-                        {doorSortColumn === "RFStatusName" &&
+                        Status
+                        {doorSortColumn === "status" &&
                           (doorSortOrder === "asc" ? (
                             <ChevronUpIcon />
                           ) : (
                             <ChevronDownIcon />
                           ))}
+                      </Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>Is Closed</Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>Is Open</Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>Door Ajar</Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>
+                        Low Battery
+                      </Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>
+                        Weak Hub Signal
+                      </Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>
+                        Privacy Enabled
+                      </Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>
+                        Last Comm.
                       </Table.ColumnHeaderCell>
                       <Table.ColumnHeaderCell
                         onClick={() => handleDoorSort("hubLastOffline")}
@@ -553,38 +578,105 @@ function DoorStatus() {
                     {paginatedDoorData.map((item, index) => (
                       <Table.Row key={index} align="center">
                         <Table.RowHeaderCell>
-                          <Text>{item.RoomName}</Text>
+                          <Text>{item.name}</Text>
                         </Table.RowHeaderCell>
                         <Table.Cell>
-                          <Text>{item.FloorName}</Text>
+                          <Text>{item.floorName}</Text>
                         </Table.Cell>
                         <Table.Cell>
                           <Text>{item.HubName}</Text>
                         </Table.Cell>
-                        {/* <Table.Cell>
-                          <Badge
-                            color={
-                              ["Offline", "Unknown"].includes(item.HubStatus)
-                                ? "red"
-                                : "green"
-                            }
-                            radius="full"
-                          >
-                            <Text>{item.HubStatus}</Text>
-                          </Badge>
-                        </Table.Cell> */}
                         <Table.Cell>
                           <Badge
                             color={
-                              ["Offline", "Unknown"].includes(item.RFStatusName)
+                              ["Offline", "Unknown"].includes(item.status)
                                 ? "red"
                                 : "green"
                             }
                             radius="full"
                           >
-                            <Text>{item.RFStatusName}</Text>
+                            <Text>{item.status}</Text>
                           </Badge>
                         </Table.Cell>
+                        <Table.Cell>
+                          <Text>
+                            <Text
+                              style={{
+                                color: item.isOpen ? "green" : "red",
+                                fontSize: "16px",
+                              }}
+                            >
+                              {item.isOpen ? "x" : "✓"}
+                            </Text>
+                          </Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Text>
+                            <Text
+                              style={{
+                                color: item.isOpen ? "green" : "red",
+                                fontSize: "16px",
+                              }}
+                            >
+                              {item.isOpen ? "✓" : "✗"}
+                            </Text>
+                          </Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Text>
+                            <Text
+                              style={{
+                                color: item.isAjar ? "green" : "red",
+                                fontSize: "16px",
+                              }}
+                            >
+                              {item.isAjar ? "✓" : "✗"}
+                            </Text>
+                          </Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Text>
+                            <Text
+                              style={{
+                                color: item.isBatteryLow ? "green" : "red",
+                                fontSize: "16px",
+                              }}
+                            >
+                              {item.isBatteryLow ? "✓" : "✗"}
+                            </Text>
+                          </Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Text>
+                            <Text
+                              style={{
+                                color: item.isRfSignalWeak ? "green" : "red",
+                                fontSize: "16px",
+                              }}
+                            >
+                              {item.isRfSignalWeak ? "✓" : "✗"}
+                            </Text>
+                          </Text>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Text>
+                            <Text
+                              style={{
+                                color: item.isDeadboltThrown ? "green" : "red",
+                                fontSize: "16px",
+                              }}
+                            >
+                              {item.isDeadboltThrown ? "✓" : "✗"}
+                            </Text>
+                          </Text>
+                        </Table.Cell>
+
+                        <Table.Cell>
+                          <Text>
+                            {formatDateLocal(item.lastCommunications)}
+                          </Text>
+                        </Table.Cell>
+
                         <Table.Cell>
                           <Text>{formatDateLocal(item.hubLastOffline)}</Text>
                         </Table.Cell>

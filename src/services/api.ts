@@ -8,6 +8,10 @@ const HUB_URL = "http://192.168.0.14/WebAPI/api/hub/GetHubList";
 const ACCESS_POINT_URL = "http://192.168.0.14/WebAPI/api/AccessPoint/";
 const OnlineMetrics_URL = "http://192.168.0.14/WebAPI/api/hub/getOnlineMetrics";
 
+const HUB_LIST_URL = "http://192.168.0.14/WebAPI/api/hub/GetHubList";
+
+const LOCK_LIST_URL = "http://192.168.0.14/WebAPI/api/hub/GetLockListByHubs";
+
 // User credentials
 const authPayload = new URLSearchParams({
   grant_type: "password",
@@ -128,11 +132,83 @@ export const fetchAndMergeData = async (): Promise<{
 
     return { hubs, accessPoints };
   } catch (error) {
-    console.error("Error fetching data:", error);
     return { hubs: [], accessPoints: [] };
   }
 };
 
+export const fetchHubList = async (): Promise<number[]> => {
+  let token = getToken();
+  if (!token) token = await authenticate();
+
+  try {
+    const response = await axios.get(HUB_LIST_URL, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    console.log("Raw Hub List Response:", response.data); // Log the raw data
+
+    let hubIds: number[] = [];
+
+    // Handle different possible response structures
+    if (Array.isArray(response.data)) {
+      hubIds = response.data.map((item: any) =>
+        typeof item === "object" ? item.hubId : item
+      );
+    } else if (response.data && typeof response.data === "object") {
+      if (response.data.items && Array.isArray(response.data.items)) {
+        hubIds = response.data.items.map((item: any) => item.hubId);
+      } else if (response.data.hubIds && Array.isArray(response.data.hubIds)) {
+        hubIds = response.data.hubIds;
+      }
+    }
+
+    if (hubIds.length === 0) {
+      console.warn("No hub IDs found in response");
+    }
+
+    // console.log("Extracted Hub IDs:", hubIds);
+    return hubIds;
+  } catch (error) {
+    console.error("fetchHubList failed:", error);
+    throw error;
+  }
+};
+
+// Fetch lock list using dynamic hub IDs
+export const fetchLockListByHubs = async (): Promise<any> => {
+  let token = getToken();
+  if (!token) token = await authenticate();
+
+  // Fetch available hub IDs first
+  const hubIds = await fetchHubList();
+  const payload = { hubIds }; // Use the fetched hub IDs
+
+  try {
+    const response = await axios.post(LOCK_LIST_URL, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    //console.log("Lock List Response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("fetchLockListByHubs failed:", error);
+    throw error;
+  }
+};
+
+// Test it
+// (async () => {
+//   try {
+//     const lockListData = await fetchLockListByHubs();
+//     console.log("Lock List for available hubs:", lockListData);
+//   } catch (error) {
+//     console.error("Test failed:", error);
+//   }
+// })();
+
 setInterval(() => {
-  authenticate().then((newToken) => console.log("Token refreshed:", newToken));
+  authenticate().then((newToken) => console.log("Token refreshed:"));
 }, 60000);
