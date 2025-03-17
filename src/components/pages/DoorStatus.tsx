@@ -21,7 +21,6 @@ import {
 import * as ScrollArea from "@radix-ui/react-scroll-area";
 import {
   fetchHubStatus,
-  fetchAndMergeData,
   fetchOnlineMetric,
   fetchLockListByHubs,
 } from "/src/services/api";
@@ -111,13 +110,13 @@ function DoorStatus() {
           floorName: item.floorName || "-",
           HubName: item.hubName || "-",
           status: item.status || "-",
-          isOpen: item.isOpen,
-          isAjar: item.isAjar,
-          isBatteryLow: item.isBatteryLow,
-          isRfSignalWeak: item.isRfSignalWeak,
-          isDeadboltThrown: item.isDeadboltThrown,
-          lastCommunications: item.lastCommunication,
-          hubLastOffline: item.lastTimeOffline,
+          isOpen: item.isOpen || "-",
+          isAjar: item.isAjar || "-",
+          isBatteryLow: item.isBatteryLow || "-",
+          isRfSignalWeak: item.isRfSignalWeak || "-",
+          isDeadboltThrown: item.isDeadboltThrown || "-",
+          lastCommunications: item.lastCommunication || "-",
+          hubLastOffline: item.lastTimeOffline || "-",
         }));
         //  console.log("Rubens:", mappedData);
         setPairedData(mappedData);
